@@ -174,7 +174,6 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-
   # getting species list in left panel from three dropdowns
   output$species <- renderUI({
     selected_species <- unique(c(input$species_select1, input$species_select2, input$species_select3))
@@ -182,7 +181,7 @@ server <- function(input, output, session) {
   })
 
   # Create reactive expression for selected cluster
-    output$cluster_dropdown <- renderUI({
+  output$cluster_dropdown <- renderUI({
     # Get cluster info based on selected species
     cluster_info <- get_species_cluster_info(input$species)
     # Get available clusters for selected species
