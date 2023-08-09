@@ -92,11 +92,15 @@ ui <- fluidPage(
           fluidRow(
             column(
               width = 12,
+              fileInput("uploaded_file", "Upload Seurat Object (RDS)")
+            ),
+            column(
+              width = 12,
               div(
                 # style = "display: none;",
                 radioButtons(
                   "gene_input_type",
-                  label = "Select input type",
+                  label = "Select Input Type",
                   choices = c("Dropdown", "Text Input"),
                   selected = "Text Input",
                   inline = TRUE
@@ -140,7 +144,8 @@ ui <- fluidPage(
           fluidRow(
             column(
               width = 4, align = "center",
-              selectInput("species_select1", "Select Species:", choices = c("ATH", "Maize", "Rice"), selected = "ATH")
+              uiOutput("species_select1")
+              # selectInput("species_select1", "Uploaded Species:", choices = c("User Uploaded"), selected = "User Uploaded")
             ),
             column(
               width = 4, align = "center",
@@ -373,16 +378,52 @@ server <- function(input, output, session) {
     }
   }
 
+  observeEvent(input$uploaded_file, {
+    if (!is.null(input$uploaded_file)) {
+      uploaded_data <- readRDS(input$uploaded_file$datapath)
+      uploaded_filename <- tools::file_path_sans_ext(input$uploaded_file$name)
+
+      output$species_select1 <- renderUI({
+        selectInput("species_select1", "Uploaded Species", choices = c(uploaded_filename))
+      })
+
+      # Assuming uploaded_data contains the necessary components like cluster_info and expr_data
+      cluster_info <- uploaded_data$cluster_info
+      expr_data <- uploaded_data$expr_data
+
+      output$umap1 <- renderPlot({
+        create_umap_plot(cluster_info, paste("UMAP of", uploaded_filename, "(Uploaded)"))
+      })
+
+      output$exp1 <- renderPlot({
+        selected_species <- input$species_select1
+        gene_exp_mat <- gene_expr(get_species_data("ATH"), expr_data, cluster_info)
+        create_expression_plot(gene_exp_mat, "ATH", cluster_info)
+      })
+    }
+  })
+
+  # Placeholder plots for when no data is uploaded
   output$umap1 <- renderPlot({
-    selected_species <- input$species_select1
-    create_umap_plot(get_species_cluster_info(selected_species), paste("UMAP of", selected_species))
+    plot(0, 0, type = "n", xlab = "", ylab = "", xlim = c(0, 1), ylim = c(0, 1))
+    text(0.5, 0.5, "Please upload data", cex = 1.5, col = "gray")
   })
 
   output$exp1 <- renderPlot({
-    selected_species <- input$species_select1
-    gene_exp_mat <- gene_expr(get_species_data(selected_species), get_species_expr_mat(selected_species), get_species_cluster_info(selected_species))
-    create_expression_plot(gene_exp_mat, selected_species, get_species_cluster_info(selected_species))
+    plot(0, 0, type = "n", xlab = "", ylab = "", xlim = c(0, 1), ylim = c(0, 1))
+    text(0.5, 0.5, "Please upload data", cex = 1.5, col = "gray")
   })
+
+  # output$umap1 <- renderPlot({
+  #   selected_species <- input$species_select1
+  #   create_umap_plot(get_species_cluster_info(selected_species), paste("UMAP of", selected_species))
+  # })
+
+  # output$exp1 <- renderPlot({
+  #   selected_species <- input$species_select1
+  #   gene_exp_mat <- gene_expr(get_species_data(selected_species), get_species_expr_mat(selected_species), get_species_cluster_info(selected_species))
+  #   create_expression_plot(gene_exp_mat, selected_species, get_species_cluster_info(selected_species))
+  # })
 
   output$umap2 <- renderPlot({
     selected_species <- input$species_select2
